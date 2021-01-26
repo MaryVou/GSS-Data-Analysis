@@ -1,0 +1,147 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+```
+
+### Load data
+
+```{r load-data}
+load("gss.Rdata")
+```
+
+
+
+* * *
+
+## Part 1: Data
+
+The target population of the GSS is adults (18+) living in households in the United States. The GSS sample is drawn using an area probability design that randomly selects respondents in households across the United States to take part in the survey. Respondents that become part of the GSS sample are from a mix of urban, suburban, and rural geographic areas. Participation in the study is strictly voluntary. However, because only about a few thousand respondents are interviewed in the main study, every respondent selected is very important to the results.
+
+The survey is conducted face-to-face with an in-person interview by NORC at the University of Chicago.
+
+Based on the way that information is collected, we can say that this is an observational research that offers generalizability.
+
+* * *
+
+## Part 2: Research question
+
+The question that I'll try to answer in this research paper is a topic very popular in the US: gun ownership and social status. Specifically, in the year 2012, are those two terms independent from each other, or somehow associated?
+
+This question is of great interest to me, because as a European citizen, gun laws and ownership frequency are very different here. Plus, it's a very discussed problem with great journalistic and public interest.
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+Before checking the association between gun ownership and social status, I would like to present a few facts  and information about the data.
+
+For this purpose, I'll use 2 variables, which are described below:
+
+* class -> categorical variable with 5 levels:
+  + lower class
+  + working class
+  + middle class
+  + upper class
+  + no class (which is not helpful so I'm going to omit it)
+  
+* owngun -> categorical variable with 3 levels:
+  + yes
+  + no
+  + refused (which is not helpful so I'm going to omit it)
+
+First of all, since I'm interested in the year 2012 I'm going to erase every row containing other years:
+```{r}
+gss <- subset(gss, year==2012)
+```
+
+**NOTE:** Choosing one year to work with is almost inevitable, since many people have probably responded to more than one interviews and that will cause data independence issues.
+
+Now, a brief representation of the variables of interest:
+
+```{r}
+gss <- gss[gss$class!="No Class", ,drop=FALSE]
+gss$class <- factor(gss$class)
+summary(gss$class)
+```
+
+Here we can see how the subjects categorized themselves. I have removed the "No Class" value and label as well.
+
+Next, let's have a look at the gun owners, without caring about the "Refused" answers:
+```{r}
+gss <- gss[gss$owngun!="Refused", ,drop=FALSE]
+gss$owngun <- factor(gss$owngun)
+summary(gss$owngun)
+```
+
+I'm also going to clean out every "NA" row for convenience:
+```{r}
+gss <- subset(gss, !is.na(class), !is.na(owngun))
+```
+
+And now I'm going to visualize the 2 variables:
+
+```{r}
+ggplot(gss,aes(class, ..count..))+
+  geom_bar(aes(fill=owngun),position = "dodge")
+```
+
+From a first look, we see that every class has much more "No" values than "Yes" ,but of course this doesn't prove that the 2 variables are not associated.
+
+* * *
+
+## Part 4: Inference
+
+
+**Hypothesis Statement and Method Usage**
+
+In this part I'm going to see if the two variables are indeed associated. The appropriate test for this purpose is the chi square test of independence, since I'm using 2 categorical variables, one with more than 2 levels.
+
+I'm going to create a contingency table to view the data:
+```{r}
+table(gss$owngun,gss$class)
+```
+
+
+*Null Hypothesis:* Gun ownership and social status are independent
+
+*Alternative Hypothesis:* Gun ownership and social status are associated
+
+**Conditions Checking**
+
+To begin with, I'm going to check the conditions for the chi square test:
+
+* Independence:
+  + The data were collected via the random sampling method
+  + Since I'm working with data from one year, I can assume that the records are independent from each other
+  + Also, the final dataframe contains 1271 observations which is less than 10% of the US citizens
+
+* Sample Size:
+  + Each cell has at least 5 cases
+
+**Inference**
+
+For the inference I'm going to use the "prop.test" function which is ideal for chi square tests:
+```{r}
+prop.test(table(gss$class,gss$owngun))
+```
+
+
+**Results Interpretation**
+
+The prop.test function inform us that it calculated a test statistic equal to 26.275 with 3 degrees of freedom, that resulted in a very small p-value of 8.354e-06. 
+
+Since the p-value is so small, I'm going to reject the null hypothesis and accept the alternative one, which means that gun ownership and social status are two terms associated.
